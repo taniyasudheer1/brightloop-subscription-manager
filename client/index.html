@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brightloop Software | Subscription Management System</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Top Navigation Bar -->
+        <header class="navbar">
+            <div class="nav-brand">
+                <div class="logo-icon">B</div>
+                <div>
+                    <span class="logo-title">brightloop</span>
+                    <span class="logo-sub">Subscription Platform</span>
+                </div>
+            </div>
+
+            <!-- Demo Quick Switcher & User Profile -->
+            <div class="nav-actions">
+                <div class="demo-switcher">
+                    <label>Demo Role:</label>
+                    <select id="demoUserSelect" onchange="switchDemoUser(this.value)">
+                        <option value="admin">Alex Vance (Admin)</option>
+                        <option value="staff">Sarah Jenkins (Staff)</option>
+                        <option value="acme">Acme Corp (Customer)</option>
+                        <option value="bakery">Fresh Bakes (Customer)</option>
+                    </select>
+                </div>
+
+                <div class="user-pill" id="userPill">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div class="user-info">
+                        <span class="user-name" id="userName">Alex Vance</span>
+                        <span class="user-role-badge role-admin" id="userRoleBadge">admin</span>
+                    </div>
+                    <button class="btn-logout" onclick="logout()" title="Logout">&#x2715;</button>
+                </div>
+
+                <button class="btn-auth-trigger" id="btnAuthTrigger" onclick="openAuthModal()" style="display: none;">Sign In / Sign Up</button>
+            </div>
+        </header>
+
+        <!-- Main Workspace Layout -->
+        <div class="workspace">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <div class="sidebar-section-title">MAIN</div>
+                <nav class="nav-menu">
+                    <button class="nav-item active" data-tab="financeTab" onclick="switchTab('financeTab')">
+                        <span class="nav-icon">&#x1F4CA;</span> Finance & Insights
+                    </button>
+                    <button class="nav-item" data-tab="subscriptionsTab" onclick="switchTab('subscriptionsTab')">
+                        <span class="nav-icon">&#x1F504;</span> Subscriptions & Quotes
+                    </button>
+                    <button class="nav-item" data-tab="invoicesTab" onclick="switchTab('invoicesTab')">
+                        <span class="nav-icon">&#x1F9FE;</span> Billing & Invoices
+                    </button>
+                    <button class="nav-item" data-tab="paymentsTab" onclick="switchTab('paymentsTab')">
+                        <span class="nav-icon">&#x1F4B3;</span> Payments & Ledger
+                    </button>
+                </nav>
+
+                <div class="sidebar-section-title admin-staff-only">CATALOG & RULES</div>
+                <nav class="nav-menu admin-staff-only">
+                    <button class="nav-item" data-tab="productsTab" onclick="switchTab('productsTab')">
+                        <span class="nav-icon">&#x1F4E6;</span> Products & Variants
+                    </button>
+                    <button class="nav-item" data-tab="plansTab" onclick="switchTab('plansTab')">
+                        <span class="nav-icon">&#x1F4C5;</span> Pricing Plans
+                    </button>
+                    <button class="nav-item admin-only" data-tab="discountsTaxesTab" onclick="switchTab('discountsTaxesTab')">
+                        <span class="nav-icon">&#x1F3F7;</span> Discounts & Taxes
+                    </button>
+                    <button class="nav-item admin-only" data-tab="staffTab" onclick="switchTab('staffTab')">
+                        <span class="nav-icon">&#x1F465;</span> Staff Management
+                    </button>
+                </nav>
+
+                <div class="sidebar-section-title customer-only" style="display:none;">CUSTOMER PORTAL</div>
+                <nav class="nav-menu customer-only" style="display:none;">
+                    <button class="nav-item" data-tab="customerPortalTab" onclick="switchTab('customerPortalTab')">
+                        <span class="nav-icon">&#x1F4BC;</span> My Subscriptions & Invoices
+                    </button>
+                </nav>
+
+                <!-- System Performance Widget -->
+                <div class="system-perf-box">
+                    <div class="perf-title">&#x26A1; Sub-Second SLA</div>
+                    <div class="perf-val" id="perfResponseTime">&lt; 15 ms</div>
+                    <div class="perf-desc">Optimized for 100k+ subs per page</div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="content-area">
+                <!-- Notifications Banner -->
+                <div id="notificationBanner" class="notification-banner" style="display: none;"></div>
+
+                <!-- TAB 1: FINANCE & REPORTING (FINANCE LEAD) -->
+                <section id="financeTab" class="tab-pane active">
+                    <div class="view-header">
+                        <div>
+                            <h2>Finance Overview & Monthly Review</h2>
+                            <p class="subtitle">Real-time health, active recurring revenue, cash collections and overdue chasing</p>
+                        </div>
+                        <div class="header-actions">
+                            <button class="btn btn-primary" onclick="triggerBillingRun()">
+                                <span>&#x2699;</span> Run Automated Billing
+                            </button>
+                            <button class="btn btn-secondary" onclick="loadFinanceData()">
+                                <span>&#x21BB;</span> Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- KPI Cards Grid -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-label">Active Subscriptions</div>
+                            <div class="kpi-value" id="kpiActiveSubs">0</div>
+                            <div class="kpi-trend positive">&#x2197; Live recurring contracts</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Monthly Recurring Revenue (MRR)</div>
+                            <div class="kpi-value" id="kpiMRR">$0.00</div>
+                            <div class="kpi-trend positive" id="kpiARR">ARR: $0.00</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Total Revenue Collected</div>
+                            <div class="kpi-value text-success" id="kpiRevenue">$0.00</div>
+                            <div class="kpi-trend">Settled cash in bank</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-label">Outstanding Revenue Owed</div>
+                            <div class="kpi-value text-warning" id="kpiOutstanding">$0.00</div>
+                            <div class="kpi-trend text-warning" id="kpiUnpaidCount">0 pending invoices</div>
+                        </div>
+                        <div class="kpi-card alert-card">
+                            <div class="kpi-label">Overdue Invoices</div>
+                            <div class="kpi-value text-danger" id="kpiOverdueCount">0</div>
+                            <div class="kpi-trend text-danger" id="kpiOverdueAmount">$0.00 at risk</div>
+                        </div>
+                    </div>
+
+                    <!-- Overdue Invoices Chasing Section -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <div>
+                                <h3>Overdue Invoices Requiring Follow-Up</h3>
+                                <p class="card-subtitle">Chase pending payments before they turn into lost revenue</p>
+                            </div>
+                            <span class="badge badge-danger" id="overdueBadge">0 Overdue</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Invoice #</th>
+                                        <th>Customer</th>
+                                        <th>Due Date</th>
+                                        <th>Total</th>
+                                        <th>Balance Owed</th>
+                                        <th>Payment Terms</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="overdueTableBody">
+                                    <tr><td colspan="7" class="text-center text-muted">No overdue invoices right now!</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Recent Payments Activity -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h3>Recent Payments Settled</h3>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Receipt #</th>
+                                        <th>Invoice #</th>
+                                        <th>Customer</th>
+                                        <th>Method</th>
+                                        <th>Amount</th>
+                                        <th>Settlement Date</th>
+                                        <th>Reference / Note</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentPaymentsBody">
+                                    <tr><td colspan="7" class="text-center text-muted">Loading payments...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 2: SUBSCRIPTIONS & QUOTES -->
+                <section id="subscriptionsTab" class="tab-pane">
+                    <div class="view-header">
+                        <div>
+                            <h2>Subscriptions & Quotes</h2>
+                            <p class="subtitle">Manage the full lifecycle from Quotation to Confirmed, Active, Paused, and Closed</p>
+                        </div>
+                        <div class="header-actions">
+                            <button class="btn btn-secondary" onclick="openTemplateQuoteModal()">
+                                <span>&#x1F4C4;</span> Create from Template
+                            </button>
+                            <button class="btn btn-primary" onclick="openNewSubModal()">
+                                <span>&#x2795;</span> New Custom Subscription
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="filter-bar">
+                        <div class="filter-group">
+                            <label>Filter Status:</label>
+                            <select id="subStatusFilter" onchange="loadSubscriptions()">
+                                <option value="">All Statuses</option>
+                                <option value="Draft">Draft</option>
+                                <option value="Quotation">Quotation</option>
+                                <option value="Confirmed">Confirmed</option>
+                                <option value="Active">Active</option>
+                                <option value="Paused">Paused</option>
+                                <option value="Closed">Closed</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Subscription #</th>
+                                        <th>Customer</th>
+                                        <th>Plan & Frequency</th>
+                                        <th>Status</th>
+                                        <th>Start Date</th>
+                                        <th>Expiry Date</th>
+                                        <th>Next Billing</th>
+                                        <th>Recurring Total</th>
+                                        <th>Lifecycle Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="subscriptionsTableBody">
+                                    <tr><td colspan="9" class="text-center text-muted">Loading subscriptions...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 3: BILLING & INVOICES -->
+                <section id="invoicesTab" class="tab-pane">
+                    <div class="view-header">
+                        <div>
+                            <h2>Billing Day & Invoice Management</h2>
+                            <p class="subtitle">Draft, Confirmed, and Paid invoices with automatic tax and discount calculation</p>
+                        </div>
+                        <div class="header-actions">
+                            <button class="btn btn-primary" onclick="triggerBillingRun()">
+                                <span>&#x2699;</span> Run Automated Billing Batch
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="filter-bar">
+                        <div class="filter-group">
+                            <label>Filter By:</label>
+                            <select id="invoiceFilterSelect" onchange="loadInvoices()">
+                                <option value="">All Invoices</option>
+                                <option value="outstanding">Outstanding (Unpaid)</option>
+                                <option value="overdue">Overdue Only</option>
+                                <option value="paid">Fully Paid</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Invoice #</th>
+                                        <th>Sub #</th>
+                                        <th>Customer</th>
+                                        <th>Status</th>
+                                        <th>Issue Date</th>
+                                        <th>Due Date</th>
+                                        <th>Subtotal</th>
+                                        <th>Tax</th>
+                                        <th>Discount</th>
+                                        <th>Total</th>
+                                        <th>Balance Due</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="invoicesTableBody">
+                                    <tr><td colspan="12" class="text-center text-muted">Loading invoices...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 4: PAYMENTS & LEDGER -->
+                <section id="paymentsTab" class="tab-pane">
+                    <div class="view-header">
+                        <div>
+                            <h2>Payments Ledger</h2>
+                            <p class="subtitle">Record cash, wire, card, and digital payments against invoices</p>
+                        </div>
+                        <div class="header-actions">
+                            <button class="btn btn-primary" onclick="openPaymentModal()">
+                                <span>&#x2795;</span> Record Payment
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Receipt #</th>
+                                        <th>Invoice #</th>
+                                        <th>Customer</th>
+                                        <th>Payment Method</th>
+                                        <th>Amount Paid</th>
+                                        <th>Payment Date</th>
+                                        <th>Reference Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="paymentsTableBody">
+                                    <tr><td colspan="7" class="text-center text-muted">Loading payments...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 5: PRODUCTS & VARIANTS -->
+                <section id="productsTab" class="tab-pane">
+                    <div class="view-header">
+                        <div>
+                            <h2>Products & Variants</h2>
+                            <p class="subtitle">Manage products with variants (e.g. Odoo Brand Edition adding +$560)</p>
+                        </div>
+                        <div class="header-actions admin-only">
+                            <button class="btn btn-primary" onclick="openNewProductModal()">
+                                <span>&#x2795;</span> Add New Product
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="productsGrid" class="products-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </section>
+
+                <!-- TAB 6: PRICING PLANS -->
+                <section id="plansTab" class="tab-pane">
+                    <div class="view-header">
+                        <div>
+                            <h2>Pricing Plans & Cadence Rules</h2>
+                            <p class="subtitle">Configure daily, weekly, monthly, and yearly billing plans and lifecycle rules</p>
+                        </div>
+                        <div class="header-actions admin-only">
+                            <button class="btn btn-primary" onclick="openNewPlanModal()">
+                                <span>&#x2795;</span> Create Pricing Plan
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Plan Name</th>
+                                        <th>Product</th>
+                                        <th>Frequency</th>
+                                        <th>Price</th>
+                                        <th>Min Quantity</th>
+                                        <th>Start Date</th>
+                                        <th>End Date</th>
+                                        <th>Auto-Close</th>
+                                        <th>Can Pause</th>
+                                        <th>Can Close Early</th>
+                                        <th>Can Renew</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="plansTableBody">
+                                    <tr><td colspan="11" class="text-center text-muted">Loading plans...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 7: DISCOUNTS & TAXES (ADMIN ONLY) -->
+                <section id="discountsTaxesTab" class="tab-pane">
+                    <div class="view-header">
+                        <div>
+                            <h2>Discounts & Tax Rules</h2>
+                            <p class="subtitle">Only the admin can configure discount rules and automatic tax calculations</p>
+                        </div>
+                        <div class="header-actions">
+                            <button class="btn btn-secondary" onclick="openNewTaxModal()">
+                                <span>&#x2795;</span> New Tax Rule
+                            </button>
+                            <button class="btn btn-primary" onclick="openNewDiscountModal()">
+                                <span>&#x2795;</span> New Discount Rule
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid-2-col">
+                        <!-- Discounts Table -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Discount Rules</h3>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Rule Name</th>
+                                            <th>Code</th>
+                                            <th>Type & Value</th>
+                                            <th>Min Qty / Order</th>
+                                            <th>Validity Window</th>
+                                            <th>Usage / Limit</th>
+                                            <th>Scope</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="discountsTableBody">
+                                        <tr><td colspan="7" class="text-center text-muted">Loading discounts...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tax Rules Table -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Automatic Tax Rules</h3>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Tax Name</th>
+                                            <th>Rate (%)</th>
+                                            <th>Default Rule</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="taxesTableBody">
+                                        <tr><td colspan="4" class="text-center text-muted">Loading taxes...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 8: STAFF MANAGEMENT (ADMIN ONLY) -->
+                <section id="staffTab" class="tab-pane">
+                    <div class="view-header">
+                        <div>
+                            <h2>Internal Staff Management</h2>
+                            <p class="subtitle">Only the admin can invite and add new staff members to Brightloop</p>
+                        </div>
+                        <div class="header-actions">
+                            <button class="btn btn-primary" onclick="openNewStaffModal()">
+                                <span>&#x2795;</span> Add New Staff Member
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Staff Name</th>
+                                        <th>Email</th>
+                                        <th>Department / Unit</th>
+                                        <th>Role</th>
+                                        <th>Joined Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="staffTableBody">
+                                    <tr><td colspan="5" class="text-center text-muted">Loading staff members...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 9: CUSTOMER PORTAL -->
+                <section id="customerPortalTab" class="tab-pane">
+                    <div class="view-header">
+                        <div>
+                            <h2>Customer Self-Service Portal</h2>
+                            <p class="subtitle">View your active subscriptions, review invoices, and pay directly online</p>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h3>My Active & Past Subscriptions</h3>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Subscription #</th>
+                                        <th>Plan</th>
+                                        <th>Billing Cadence</th>
+                                        <th>Status</th>
+                                        <th>Valid Period</th>
+                                        <th>Recurring Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="customerSubsTableBody">
+                                    <tr><td colspan="6" class="text-center text-muted">Loading your subscriptions...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>My Invoices & Online Payments</h3>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Invoice #</th>
+                                        <th>Issue Date</th>
+                                        <th>Due Date</th>
+                                        <th>Total</th>
+                                        <th>Paid Amount</th>
+                                        <th>Balance Due</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="customerInvoicesTableBody">
+                                    <tr><td colspan="8" class="text-center text-muted">Loading your invoices...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- ================= MODALS ================= -->
+
+        <!-- Printable Invoice Modal -->
+        <div id="invoiceViewModal" class="modal">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content invoice-document">
+                    <div class="invoice-header">
+                        <div class="invoice-brand">
+                            <div class="logo-icon">B</div>
+                            <div>
+                                <h2>brightloop</h2>
+                                <p class="text-muted">Brightloop Software Inc.<br>Billing Operations & Subscriptions</p>
+                            </div>
+                        </div>
+                        <div class="invoice-meta text-right">
+                            <h1 id="invDocNumber">INV-2026-0001</h1>
+                            <div id="invDocStatusBadge" class="badge badge-success">Paid</div>
+                            <p class="mt-2 text-muted">
+                                Issue Date: <span id="invDocIssue">2026-10-01</span><br>
+                                Due Date: <span id="invDocDue">2026-10-31</span><br>
+                                Payment Terms: <span id="invDocTerms">Net 30</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="invoice-parties mt-4">
+                        <div class="party-box">
+                            <div class="party-label">Billed To:</div>
+                            <h4 id="invDocCustomerName">Acme Corporation</h4>
+                            <p id="invDocCustomerEmail">acme@corp.com</p>
+                            <p id="invDocCustomerCompany" class="text-muted">Enterprise Customer</p>
+                        </div>
+                        <div class="party-box text-right">
+                            <div class="party-label">Subscription Reference:</div>
+                            <h4 id="invDocSubNumber">SUB-2026-0001</h4>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive mt-4">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th>Qty</th>
+                                    <th>Unit Price</th>
+                                    <th>Tax Rate</th>
+                                    <th>Tax Amount</th>
+                                    <th>Discount</th>
+                                    <th>Line Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invDocLinesBody">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="invoice-totals mt-4">
+                        <div class="totals-row"><span>Subtotal:</span><span id="invDocSubtotal">$0.00</span></div>
+                        <div class="totals-row"><span>Total Tax:</span><span id="invDocTax">$0.00</span></div>
+                        <div class="totals-row"><span>Discount:</span><span id="invDocDiscount" class="text-success">-$0.00</span></div>
+                        <div class="totals-row grand-total"><span>Total Amount:</span><span id="invDocTotal">$0.00</span></div>
+                        <div class="totals-row"><span>Amount Paid:</span><span id="invDocPaid">$0.00</span></div>
+                        <div class="totals-row balance-due"><span>Balance Due:</span><span id="invDocBalance">$0.00</span></div>
+                    </div>
+
+                    <div class="modal-footer mt-4">
+                        <button class="btn btn-secondary" onclick="window.print()">Print Invoice</button>
+                        <button class="btn btn-secondary" onclick="closeModal('invoiceViewModal')">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Quote from Template Modal -->
+        <div id="templateQuoteModal" class="modal">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Create Quotation from Template</h3>
+                        <button class="close-btn" onclick="closeModal('templateQuoteModal')">&times;</button>
+                    </div>
+                    <form onsubmit="handleCreateFromTemplate(event)">
+                        <div class="form-group">
+                            <label>Select Quotation Template:</label>
+                            <select id="tplSelect" required onchange="renderTemplatePreview(this.value)">
+                            </select>
+                        </div>
+                        <div class="template-preview-card" id="tplPreviewBox">
+                            <!-- Template lines preview -->
+                        </div>
+                        <div class="form-group mt-3">
+                            <label>Select Customer:</label>
+                            <select id="tplCustomerSelect" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Offer Start Date:</label>
+                            <input type="date" id="tplStartDate" required>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeModal('templateQuoteModal')">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Generate Quotation</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Record Payment Modal -->
+        <div id="paymentModal" class="modal">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Record Payment</h3>
+                        <button class="close-btn" onclick="closeModal('paymentModal')">&times;</button>
+                    </div>
+                    <form onsubmit="handleRecordPayment(event)">
+                        <div class="form-group">
+                            <label>Target Invoice:</label>
+                            <select id="payInvoiceSelect" required onchange="updatePayAmountDefault(this.value)"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Payment Method:</label>
+                            <select id="payMethod" required>
+                                <option value="Credit Card">Credit Card</option>
+                                <option value="Bank Transfer">Bank Transfer (Wire)</option>
+                                <option value="PayPal">PayPal</option>
+                                <option value="Cash">Cash</option>
+                                <option value="UPI">UPI / Digital</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Amount ($):</label>
+                            <input type="number" step="0.01" id="payAmount" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Payment Date:</label>
+                            <input type="date" id="payDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Notes / Transaction Reference:</label>
+                            <input type="text" id="payNotes" placeholder="e.g. Wire confirmation ref #TX-10928">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeModal('paymentModal')">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Confirm & Record Payment</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Staff Modal (Admin Only) -->
+        <div id="staffModal" class="modal">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Add New Staff Member</h3>
+                        <button class="close-btn" onclick="closeModal('staffModal')">&times;</button>
+                    </div>
+                    <form onsubmit="handleAddStaff(event)">
+                        <div class="form-group">
+                            <label>Staff Member Full Name:</label>
+                            <input type="text" id="staffName" required placeholder="e.g. Jordan Lee">
+                        </div>
+                        <div class="form-group">
+                            <label>Internal Email:</label>
+                            <input type="email" id="staffEmail" required placeholder="e.g. jordan@brightloop.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Department / Role:</label>
+                            <input type="text" id="staffDept" placeholder="e.g. Sales & Account Executive">
+                        </div>
+                        <div class="form-group">
+                            <label>Temporary Password:</label>
+                            <input type="password" id="staffPassword" required placeholder="Temporary password">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeModal('staffModal')">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Create Staff Member</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Discount Rule Modal (Admin Only) -->
+        <div id="discountModal" class="modal">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Create Discount Rule</h3>
+                        <button class="close-btn" onclick="closeModal('discountModal')">&times;</button>
+                    </div>
+                    <form onsubmit="handleAddDiscount(event)">
+                        <div class="form-group">
+                            <label>Rule Name:</label>
+                            <input type="text" id="discName" required placeholder="e.g. High Volume Seat Discount">
+                        </div>
+                        <div class="form-group">
+                            <label>Coupon / Rule Code:</label>
+                            <input type="text" id="discCode" required placeholder="e.g. VOL20">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-6">
+                                <label>Rule Type:</label>
+                                <select id="discType" required>
+                                    <option value="percentage">Percentage (%)</option>
+                                    <option value="fixed">Fixed Amount ($)</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-6">
+                                <label>Discount Value:</label>
+                                <input type="number" step="0.01" id="discVal" required placeholder="e.g. 15 for 15% or 100 for $100">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-6">
+                                <label>Min Quantity (Seats):</label>
+                                <input type="number" id="discMinQty" value="0">
+                            </div>
+                            <div class="form-group col-6">
+                                <label>Min Purchase Amount ($):</label>
+                                <input type="number" step="0.01" id="discMinPurchase" value="0">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-6">
+                                <label>Valid From:</label>
+                                <input type="date" id="discStart" required>
+                            </div>
+                            <div class="form-group col-6">
+                                <label>Valid Until:</label>
+                                <input type="date" id="discEnd" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Usage Limit (leave empty for unlimited):</label>
+                            <input type="number" id="discLimit" placeholder="e.g. 100">
+                        </div>
+                        <div class="form-group">
+                            <label>Scope:</label>
+                            <select id="discScope">
+                                <option value="subscription">Whole Subscription</option>
+                                <option value="product">Specific Product</option>
+                                <option value="all">All Products</option>
+                            </select>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeModal('discountModal')">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save Discount Rule</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Variant Modal (Admin Only) -->
+        <div id="variantModal" class="modal">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Add Variant to Product</h3>
+                        <button class="close-btn" onclick="closeModal('variantModal')">&times;</button>
+                    </div>
+                    <form onsubmit="handleAddVariant(event)">
+                        <input type="hidden" id="varProductId">
+                        <div class="form-group">
+                            <label>Target Product:</label>
+                            <input type="text" id="varProductName" readonly class="form-control-plaintext">
+                        </div>
+                        <div class="form-group">
+                            <label>Variant Name (e.g. Brand: Odoo):</label>
+                            <input type="text" id="varName" required placeholder="e.g. Odoo Brand Edition">
+                        </div>
+                        <div class="form-group">
+                            <label>Price Modifier ($) (e.g. 560):</label>
+                            <input type="number" step="0.01" id="varModifier" required placeholder="560">
+                            <small class="text-muted">Adds this amount to the base product price.</small>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeModal('variantModal')">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Add Variant</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Product Modal -->
+        <div id="productModal" class="modal">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Add New Product</h3>
+                        <button class="close-btn" onclick="closeModal('productModal')">&times;</button>
+                    </div>
+                    <form onsubmit="handleAddProduct(event)">
+                        <div class="form-group">
+                            <label>Product Name:</label>
+                            <input type="text" id="prodName" required placeholder="e.g. Brightloop Analytics">
+                        </div>
+                        <div class="form-group">
+                            <label>Type:</label>
+                            <select id="prodType">
+                                <option value="Software">Software</option>
+                                <option value="Add-on">Add-on</option>
+                                <option value="Service">Service</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-6">
+                                <label>Sales Price ($):</label>
+                                <input type="number" step="0.01" id="prodSalesPrice" required placeholder="1200.00">
+                            </div>
+                            <div class="form-group col-6">
+                                <label>Cost Price ($):</label>
+                                <input type="number" step="0.01" id="prodCostPrice" required placeholder="300.00">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Notes:</label>
+                            <textarea id="prodNotes" rows="2" placeholder="Product details..."></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeModal('productModal')">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save Product</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auth Modal (Sign Up / Sign In / Forgot Password) -->
+        <div id="authModal" class="modal">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="authModalTitle">Sign Up for Brightloop</h3>
+                        <button class="close-btn" onclick="closeModal('authModal')">&times;</button>
+                    </div>
+
+                    <!-- Sign Up Form -->
+                    <div id="signUpView">
+                        <form onsubmit="handleSignUp(event)">
+                            <div class="form-group">
+                                <label>Full Name:</label>
+                                <input type="text" id="regName" required placeholder="Jane Doe">
+                            </div>
+                            <div class="form-group">
+                                <label>Company Name:</label>
+                                <input type="text" id="regCompany" placeholder="Acme Ltd.">
+                            </div>
+                            <div class="form-group">
+                                <label>Email Address:</label>
+                                <input type="email" id="regEmail" required placeholder="jane@example.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Password:</label>
+                                <input type="password" id="regPassword" required oninput="checkPasswordRequirements(this.value)">
+                            </div>
+                            <!-- Live password checklist -->
+                            <div class="password-checklist">
+                                <div id="ruleLen" class="rule-item">&#x2717; More than 8 characters</div>
+                                <div id="ruleUpper" class="rule-item">&#x2717; At least one uppercase letter (A-Z)</div>
+                                <div id="ruleLower" class="rule-item">&#x2717; At least one lowercase letter (a-z)</div>
+                                <div id="ruleSpecial" class="rule-item">&#x2717; At least one special character (!@#$%^&*)</div>
+                            </div>
+                            <div class="modal-footer mt-4">
+                                <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+                            </div>
+                            <p class="text-center mt-3 text-muted">
+                                Already have an account? <a href="#" onclick="showAuthView('signInView')">Sign In</a>
+                            </p>
+                        </form>
+                    </div>
+
+                    <!-- Sign In View -->
+                    <div id="signInView" style="display: none;">
+                        <form onsubmit="handleSignIn(event)">
+                            <div class="form-group">
+                                <label>Email Address:</label>
+                                <input type="email" id="loginEmail" required placeholder="email@brightloop.com">
+                            </div>
+                            <div class="form-group">
+                                <label>Password:</label>
+                                <input type="password" id="loginPassword" required>
+                            </div>
+                            <div class="modal-footer mt-4">
+                                <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+                            </div>
+                            <div class="text-center mt-3">
+                                <a href="#" onclick="showAuthView('forgotView')">Forgot password?</a> &bull; 
+                                <a href="#" onclick="showAuthView('signUpView')">Create an account</a>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Forgot Password View -->
+                    <div id="forgotView" style="display: none;">
+                        <form onsubmit="handleForgotPassword(event)">
+                            <p class="text-muted">Enter your registered email and we'll dispatch a secure reset link.</p>
+                            <div class="form-group">
+                                <label>Email Address:</label>
+                                <input type="email" id="forgotEmail" required placeholder="user@example.com">
+                            </div>
+                            <div class="modal-footer mt-4">
+                                <button type="submit" class="btn btn-primary btn-block">Send Reset Link</button>
+                            </div>
+                            <p class="text-center mt-3 text-muted">
+                                Remembered your password? <a href="#" onclick="showAuthView('signInView')">Sign In</a>
+                            </p>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
