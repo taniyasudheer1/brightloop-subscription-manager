@@ -10,8 +10,8 @@ app.use(cors());
 app.use(express.json());
 
 // Import Routes from the server/routes folder
-const authRoutes = require('./server/routes/auth');
-const productRoutes = require('./server/routes/products');
+const authRoutes = require('./routes/auth');
+const productRoutes = require('./routes/products');
 
 // Mount Routes
 app.use('/api/auth', authRoutes);
